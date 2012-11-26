@@ -12,7 +12,6 @@
 #import "StringHelper.h"
 #import "UrlHelper.h"
 
-NSString * LIVE_ENDPOINT_AUTH_HOST = @"oauth.live.com";
 NSString * LIVE_ENDPOINT_API_HOST = @"apis.live.net";
 NSString * LIVE_ENDPOINT_LOGIN_HOST = @"login.live.com";
 
@@ -66,53 +65,22 @@ NSString * LIVE_ENDPOINT_LOGIN_HOST = @"login.live.com";
 
 + (NSString *) getAuthorizeUrl
 {
-    // TODO: remove this checking logic once the new oauth rolls out to production.
-    if ([LIVE_ENDPOINT_AUTH_HOST isEqualToString:@"oauth.live.com"]) 
-    {
-        return [NSString stringWithFormat:@"https://%@/authorize", LIVE_ENDPOINT_AUTH_HOST];
-    }
-    else
-    {
-        return [NSString stringWithFormat:@"https://%@/oauth20_authorize.srf", LIVE_ENDPOINT_AUTH_HOST];
-    }
+    return [NSString stringWithFormat:@"https://%@/oauth20_authorize.srf", LIVE_ENDPOINT_LOGIN_HOST];
 }
 
 + (NSURL *) getRetrieveTokenUrl
 {
-    // TODO: remove this checking logic once the new oauth rolls out to production.
-    if ([LIVE_ENDPOINT_AUTH_HOST isEqualToString:@"oauth.live.com"]) 
-    {
-        return [NSURL URLWithString: [NSString stringWithFormat:@"https://%@/token", LIVE_ENDPOINT_AUTH_HOST]];
-    }
-    else
-    {
-        return [NSURL URLWithString: [NSString stringWithFormat:@"https://%@/oauth20_token.srf", LIVE_ENDPOINT_AUTH_HOST]];
-    }
+    return [NSURL URLWithString: [NSString stringWithFormat:@"https://%@/oauth20_token.srf", LIVE_ENDPOINT_LOGIN_HOST]];
 }
 
 + (NSString *) getDefaultRedirectUrlString
 {
-    // TODO: remove this checking logic once the new oauth rolls out to production.
-    if ([LIVE_ENDPOINT_AUTH_HOST isEqualToString:@"oauth.live.com"]) 
-    {
-        return [NSString stringWithFormat:@"https://%@/desktop", LIVE_ENDPOINT_AUTH_HOST];
-    }
-    else
-    {
-        return [NSString stringWithFormat:@"https://%@/oauth20_desktop.srf", LIVE_ENDPOINT_AUTH_HOST];
-    }
+    return [NSString stringWithFormat:@"https://%@/oauth20_desktop.srf", LIVE_ENDPOINT_LOGIN_HOST];
 }
 
 + (NSString *) getAuthDisplayValue
 {
-    if ([LiveAuthHelper isiPad]) 
-    {
-        return LIVE_AUTH_DISPLAY_PAGE;
-    } 
-    else 
-    {
-        return LIVE_AUTH_DISPLAY_TOUCH;
-    }
+    return [LiveAuthHelper isiPad] ? LIVE_AUTH_DISPLAY_IOS_TABLET : LIVE_AUTH_DISPLAY_IOS_PHONE;
 }
 
 + (NSURL *) buildAuthUrlWithClientId:(NSString *)clientId
@@ -128,7 +96,6 @@ NSString * LIVE_ENDPOINT_LOGIN_HOST = @"login.live.com";
                   [LiveAuthHelper getAuthDisplayValue], LIVE_AUTH_DISPLAY,
                                           scopesString, LIVE_AUTH_SCOPE,
                                               language, LIVE_AUTH_LOCALE,
-                                   //LIVE_AUTH_THEME_IOS, LIVE_AUTH_THEME,
                                                    nil];
     
     return [UrlHelper constructUrl:[LiveAuthHelper getAuthorizeUrl] params:parameters];
@@ -190,8 +157,9 @@ NSString * LIVE_ENDPOINT_LOGIN_HOST = @"login.live.com";
 
 + (id) readAuthResponse:(NSData *)data
 {
-    NSString* responseString = [[NSString alloc] initWithData:data
-                                                     encoding:NSUTF8StringEncoding];
+    NSString* responseString = [[[NSString alloc] initWithData:data
+                                                     encoding:NSUTF8StringEncoding]
+                                autorelease];
     NSError *error = nil;
     NSDictionary *params = [MSJSONParser parseText:responseString 
                                              error:&error ];
@@ -228,8 +196,6 @@ NSString * LIVE_ENDPOINT_LOGIN_HOST = @"login.live.com";
                                        description:[NSString stringWithFormat:@"Unable to read response: %@", responseString]
                                         innerError:error];
         }
-        
-        return error;
     }
 }
 
@@ -251,12 +217,6 @@ NSString * LIVE_ENDPOINT_LOGIN_HOST = @"login.live.com";
                                      [NSString stringWithFormat: httpFormat, LIVE_ENDPOINT_LOGIN_HOST], 
                                      [NSString stringWithFormat: httpsFormat, LIVE_ENDPOINT_LOGIN_HOST],
                                      nil];
-    
-    if (![LIVE_ENDPOINT_AUTH_HOST isEqualToString:LIVE_ENDPOINT_LOGIN_HOST])
-    {
-        [authEndpoints addObject:[NSString stringWithFormat: httpFormat, LIVE_ENDPOINT_AUTH_HOST]];
-        [authEndpoints addObject:[NSString stringWithFormat: httpsFormat, LIVE_ENDPOINT_AUTH_HOST]];
-    }
     
     for (NSString* authUrl in authEndpoints) 
     {
@@ -287,14 +247,11 @@ NSString * LIVE_ENDPOINT_LOGIN_HOST = @"login.live.com";
 }
 
 + (void) overrideLoginServer:(NSString *)loginServer
-                  authServer:(NSString *)authServer
-                   apiServer:(NSString *)apiServer
+                  apiServer:(NSString *)apiServer
 
 {
     LIVE_ENDPOINT_LOGIN_HOST = loginServer;
-    LIVE_ENDPOINT_AUTH_HOST = authServer;
     LIVE_ENDPOINT_API_HOST = apiServer;
-    
 }
 
 @end
